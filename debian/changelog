@@ -1,4 +1,4 @@
-u-boot-dlan17 (2026.04-1) UNRELEASED; urgency=medium
+u-boot-dlan17 (2026.04-1) unstable; urgency=medium
 
   [ Feng Zhang ]
   * fix: set SRAM controller mode for NPU power configuration
@@ -6,7 +6,7 @@ u-boot-dlan17 (2026.04-1) UNRELEASED; urgency=medium
   [ ZHANG Yuntian ]
   * feat: update to 2026.04
 
- -- "Radxa Computer Co., Ltd" <dev@radxa.com>  Sat, 09 May 2026 09:32:57 +0000
+ -- "Radxa Computer Co., Ltd" <dev@radxa.com>  Sat, 09 May 2026 10:09:39 +0000
 
 u-boot-dlan17 (2026.01-1) unstable; urgency=medium
 
