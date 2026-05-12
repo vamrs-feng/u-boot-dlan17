@@ -1,0 +1,39 @@
+From 3aa59913586050c3b8f0f2274904f640b81c77d4 Mon Sep 17 00:00:00 2001
+From: Feng Zhang <feng@radxa.com>
+Date: Tue, 12 May 2026 13:58:19 +0800
+Subject: [PATCH] sunxi: use zero-copy mode for ramdisk to avoid memory
+ relocation issues
+
+Set initrd_high=0xffffffff to enable zero-copy ramdisk mode. This prevents
+U-Boot from relocating ramdisk and uses the original address directly,
+avoiding conflicts with:
+- Display framebuffer at 0x46400000
+- BL31 reserved region at 0x48000000
+- U-Boot runtime memory
+
+When initrd_high is set to specific addresses like 0x46400000 or
+0x4FF00000, ramdisk relocation may cause kernel boot hangs or
+FDT corruption (FDT_ERR_BADMAGIC).
+
+Zero-copy mode ensures ramdisk stays at its loaded location without
+additional memory allocation, providing more reliable boot behavior.
+
+Signed-off-by: Feng Zhang <feng@radxa.com>
+
+diff --git a/src/include/configs/sunxi-common.h b/include/configs/sunxi-common.h
+index b29a25d5617..5507e233797 100644
+--- a/src/include/configs/sunxi-common.h
++++ b/src/include/configs/sunxi-common.h
+@@ -140,7 +140,8 @@
+ 	"scriptaddr=" SCRIPT_ADDR_R "\0" \
+ 	"pxefile_addr_r=" PXEFILE_ADDR_R "\0" \
+ 	"fdtoverlay_addr_r=" FDTOVERLAY_ADDR_R "\0" \
+-	"ramdisk_addr_r=" RAMDISK_ADDR_R "\0"
++	"ramdisk_addr_r=" RAMDISK_ADDR_R "\0" \
++	"initrd_high=0xffffffff" "\0"
+ 
+ #ifdef CONFIG_ARM64
+ #define MEM_LAYOUT_ENV_EXTRA_SETTINGS \
+-- 
+2.43.0
+

@@ -1,0 +1,26 @@
+From f7e701d3db762a02e2f29c22e901d20eeb0e6344 Mon Sep 17 00:00:00 2001
+From: Feng Zhang <feng@radxa.com>
+Date: Tue, 12 May 2026 18:26:19 +0800
+Subject: [PATCH] configs: cubie-a7s: enable preboot to run ARISC before kernel
+
+Signed-off-by: Feng Zhang <feng@radxa.com>
+---
+ configs/radxa-cubie-a7s_defconfig | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/configs/radxa-cubie-a7s_defconfig b/src/configs/radxa-cubie-a7s_defconfig
+index 75f40530d34..4df556e1519 100644
+--- a/src/configs/radxa-cubie-a7s_defconfig
++++ b/src/configs/radxa-cubie-a7s_defconfig
+@@ -37,4 +37,6 @@ CONFIG_USB_EHCI_HCD=y
+ CONFIG_USB_OHCI_HCD=y
+ CONFIG_USB_MUSB_GADGET=y
+ CONFIG_USB_ETH_CDC=y
+-CONFIG_SPL_STACK_R_MALLOC_SIMPLE_LEN=0x110000
+\ No newline at end of file
++CONFIG_SPL_STACK_R_MALLOC_SIMPLE_LEN=0x110000
++CONFIG_USE_PREBOOT=y
++CONFIG_PREBOOT="sunxi_boot_arisc"
+-- 
+2.43.0
+

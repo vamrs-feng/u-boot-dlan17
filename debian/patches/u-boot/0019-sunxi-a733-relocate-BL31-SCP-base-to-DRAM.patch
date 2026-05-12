@@ -1,0 +1,40 @@
+From 7e5e412aef94d9264c3e473cddbaacde397020b6 Mon Sep 17 00:00:00 2001
+From: Feng Zhang <feng@radxa.com>
+Date: Tue, 12 May 2026 15:29:17 +0800
+Subject: [PATCH] sunxi: a733: relocate BL31/SCP base to DRAM
+
+Signed-off-by: Feng Zhang <feng@radxa.com>
+
+diff --git a/src/arch/arm/mach-sunxi/Kconfig b/arch/arm/mach-sunxi/Kconfig
+index 016b50b3c49..4d51f7ccd38 100644
+--- a/src/arch/arm/mach-sunxi/Kconfig
++++ b/src/arch/arm/mach-sunxi/Kconfig
+@@ -215,7 +215,7 @@ config SUNXI_SRAM_ADDRESS
+ 	hex
+ 	default 0x10000 if MACH_SUN9I || MACH_SUN50I || MACH_SUN50I_H5
+ 	default 0x44000 if MACH_SUN55I_A523
+-	default 0x48000640 if MACH_SUN60I_A733
++	default 0x47800640 if MACH_SUN60I_A733
+ 	default 0x20000 if SUN50I_GEN_H6 || SUNXI_GEN_NCAT2
+ 	default 0x0
+ 	---help---
+@@ -259,7 +259,7 @@ config SUNXI_BL31_BASE
+ 	default 0x40000000 if MACH_SUN50I_H616
+ 	default 0x00104000 if SUN50I_GEN_H6
+ 	default 0x00054000 if MACH_SUN55I_A523
+-	default 0x00062000 if MACH_SUN60I_A733
++	default 0x48000000 if MACH_SUN60I_A733
+ 	default 0x0
+ 	help
+ 	  Address where BL31 (TF-A) is loaded, or zero if BL31 is not used.
+@@ -268,6 +268,7 @@ config SUNXI_SCP_BASE
+ 	hex
+ 	default 0x00050000 if MACH_SUN50I || MACH_SUN50I_H5
+ 	default 0x00114000 if MACH_SUN50I_H6
++	default 0x48100000 if MACH_SUN60I_A733
+ 	default 0x0
+ 	help
+ 	  Address where SCP firmware is loaded, or zero if it is not used.
+-- 
+2.43.0
+

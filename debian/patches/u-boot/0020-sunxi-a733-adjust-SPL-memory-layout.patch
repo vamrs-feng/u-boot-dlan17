@@ -1,0 +1,42 @@
+From 3d879881d72d08d5e365cf31e3ad159a5e306f1b Mon Sep 17 00:00:00 2001
+From: Feng Zhang <feng@radxa.com>
+Date: Tue, 12 May 2026 15:29:45 +0800
+Subject: [PATCH] sunxi: a733: adjust SPL memory layout
+
+Lower FIT load address to 0x47a00000 and increase malloc_simple heap
+to 0x110000 for SPL DRAM stack phase.
+
+Signed-off-by: Feng Zhang <feng@radxa.com>
+
+Index: u-boot-dlan17/src/common/spl/Kconfig
+===================================================================
+--- u-boot-dlan17.orig/src/common/spl/Kconfig
++++ u-boot-dlan17/src/common/spl/Kconfig
+@@ -281,7 +281,7 @@ config SPL_TEXT_BASE
+ 	default 0x40301350 if OMAP54XX
+ 	default 0x10060 if MACH_SUN50I || MACH_SUN50I_H5 || MACH_SUN9I
+ 	default 0x44060 if MACH_SUN55I_A523
+-	default 0x480006a0 if MACH_SUN60I_A733
++	default 0x478006a0 if MACH_SUN60I_A733
+ 	default 0x20060 if SUN50I_GEN_H6 || SUNXI_GEN_NCAT2
+ 	default 0x00060 if ARCH_SUNXI
+ 	default 0xfffc0000 if ARCH_ZYNQMP
+Index: u-boot-dlan17/src/configs/radxa-cubie-a7s_defconfig
+===================================================================
+--- u-boot-dlan17.orig/src/configs/radxa-cubie-a7s_defconfig
++++ u-boot-dlan17/src/configs/radxa-cubie-a7s_defconfig
+@@ -9,7 +9,7 @@ CONFIG_MMC_SUNXI_SLOT_EXTRA=2
+ # CONFIG_VIDEO_SUNXI is not set
+ CONFIG_RADXA_UNIFIED_IMAGE=y
+ # CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
+-CONFIG_SPL_LOAD_FIT_ADDRESS=0x48200000
++CONFIG_SPL_LOAD_FIT_ADDRESS=0x47a00000
+ CONFIG_BOOTDELAY=3
+ CONFIG_FDT_FIXUP_PARTITIONS=y
+ CONFIG_SPL_RAM_DEVICE=y
+@@ -37,3 +37,4 @@ CONFIG_USB_EHCI_HCD=y
+ CONFIG_USB_OHCI_HCD=y
+ CONFIG_USB_MUSB_GADGET=y
+ CONFIG_USB_ETH_CDC=y
++CONFIG_SPL_STACK_R_MALLOC_SIMPLE_LEN=0x110000
+\ No newline at end of file
