@@ -1,0 +1,137 @@
+From 7bb438029416b770188ec7626611dada290f347d Mon Sep 17 00:00:00 2001
+From: Feng Zhang <feng@radxa.com>
+Date: Fri, 15 May 2026 19:07:04 +0800
+Subject: [PATCH 1/6] sunxi: add sunxi_get_serial() and 'sid' command
+
+Add sunxi_get_serial() to derive serial number from chipid
+in the same format as Linux /sys/class/sunxi_info/sys_info.
+
+Add 'sid' U-Boot command to display chipid and serial.
+
+Signed-off-by: Feng Zhang <feng@radxa.com>
+---
+ .../include/asm/arch-sunxi/cpu_sunxi_ncat2.h  |  1 +
+ arch/arm/mach-sunxi/cpu_info.c                | 17 ++++++++
+ cmd/Kconfig                                   |  8 ++++
+ cmd/Makefile                                  |  1 +
+ cmd/sunxi_sid.c                               | 42 +++++++++++++++++++
+ 5 files changed, 69 insertions(+)
+ create mode 100644 cmd/sunxi_sid.c
+
+diff --git a/src/arch/arm/include/asm/arch-sunxi/cpu_sunxi_ncat2.h b/src/arch/arm/include/asm/arch-sunxi/cpu_sunxi_ncat2.h
+index 4081719c8b7..33de01d4716 100644
+--- a/src/arch/arm/include/asm/arch-sunxi/cpu_sunxi_ncat2.h
++++ b/src/arch/arm/include/asm/arch-sunxi/cpu_sunxi_ncat2.h
+@@ -91,6 +91,7 @@
+ void sunxi_board_init(void);
+ void sunxi_reset(void);
+ int sunxi_get_sid(unsigned int *sid);
++int sunxi_get_serial(unsigned int *serial);
+ #endif
+ 
+ #endif /* _SUNXI_CPU_SUNXI_NCAT2_H */
+diff --git a/src/arch/arm/mach-sunxi/cpu_info.c b/src/arch/arm/mach-sunxi/cpu_info.c
+index f0b33bb9097..74d1e92a825 100644
+--- a/src/arch/arm/mach-sunxi/cpu_info.c
++++ b/src/arch/arm/mach-sunxi/cpu_info.c
+@@ -177,3 +177,20 @@ int sunxi_get_sid(unsigned int *sid)
+ 	return -ENODEV;
+ #endif
+ }
++
++int sunxi_get_serial(unsigned int *serial)
++{
++	unsigned int chipid[4];
++	int ret;
++
++	ret = sunxi_get_sid(chipid);
++	if (ret)
++		return ret;
++
++	serial[0] = chipid[3];
++	serial[1] = chipid[2];
++	serial[2] = (chipid[1] >> 16) & 0xFFFF;
++	serial[3] = 0;
++
++	return 0;
++}
+diff --git a/src/cmd/Kconfig b/src/cmd/Kconfig
+index b359272b1f7..dc6f8dd7825 100644
+--- a/src/cmd/Kconfig
++++ b/src/cmd/Kconfig
+@@ -3206,4 +3206,12 @@ config CMD_SUNXI_BOOT_ARISC
+ 		bool "Load and run arisc cpu"
+ 		default MACH_SUN60I_A733
+ 
++config CMD_SUNXI_SID
++		bool "sunxi SID - display chipid and serial"
++		default y if ARCH_SUNXI
++		help
++		  Display the chip's unique ID (chipid) and serial number
++		  read from the SID eFuse. The serial format matches the
++		  Linux kernel's /sys/class/sunxi_info/sys_info output.
++
+ endif
+diff --git a/src/cmd/Makefile b/src/cmd/Makefile
+index 63ac9572319..6027643ea3d 100644
+--- a/src/cmd/Makefile
++++ b/src/cmd/Makefile
+@@ -13,6 +13,7 @@ obj-y += version.o
+ 
+ # command
+ obj-$(CONFIG_CMD_SUNXI_BOOT_ARISC) += sunxi_boot_arisc.o
++obj-$(CONFIG_CMD_SUNXI_SID) += sunxi_sid.o
+ obj-$(CONFIG_CMD_ARMFFA) += armffa.o
+ obj-$(CONFIG_CMD_2048) += 2048.o
+ obj-$(CONFIG_CMD_ACPI) += acpi.o
+diff --git a/src/cmd/sunxi_sid.c b/src/cmd/sunxi_sid.c
+new file mode 100644
+index 00000000000..fd1c3ec4842
+--- /dev/null
++++ b/src/cmd/sunxi_sid.c
+@@ -0,0 +1,42 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Copyright (c) 2024 Radxa
++ * sunxi SID (Security ID) command
++ */
++
++#include <command.h>
++#include <asm/arch/cpu.h>
++
++static int do_sunxi_sid(struct cmd_tbl *cmdtp, int flag, int argc,
++			char *const argv[])
++{
++	unsigned int chipid[4];
++	unsigned int serial[4];
++	int ret;
++
++	ret = sunxi_get_sid(chipid);
++	if (ret) {
++		printf("Failed to read chipid: %d\n", ret);
++		return CMD_RET_FAILURE;
++	}
++
++	printf("chipid  : %08x %08x %08x %08x\n",
++	       chipid[0], chipid[1], chipid[2], chipid[3]);
++
++	ret = sunxi_get_serial(serial);
++	if (ret) {
++		printf("Failed to read serial: %d\n", ret);
++		return CMD_RET_FAILURE;
++	}
++
++	printf("serial  : %08x%08x%08x%08x\n",
++	       serial[0], serial[1], serial[2], serial[3]);
++
++	return CMD_RET_SUCCESS;
++}
++
++U_BOOT_CMD(
++	sid, 1, 0, do_sunxi_sid,
++	"display sunxi chipid and serial",
++	""
++);
+-- 
+2.43.0
+

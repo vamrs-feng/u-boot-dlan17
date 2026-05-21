@@ -19,3 +19,8 @@ u-boot/0019-sunxi-a733-relocate-BL31-SCP-base-to-DRAM.patch
 u-boot/0020-sunxi-a733-adjust-SPL-memory-layout.patch
 u-boot/0021-sunxi-use-zero-copy-mode-for-ramdisk-to-avoid-memory.patch
 u-boot/0022-configs-cubie-a7s-enable-preboot-to-run-ARISC-before.patch
+u-boot/0023-sunxi-add-sunxi_get_serial-and-sid-command.patch
+u-boot/0024-net-dwc_eth_qos-sunxi-derive-MAC-from-chipid-as-fall.patch
+u-boot/0025-drivers-usb-host-fix-EHCI-not-working-in-Linux-after.patch
+u-boot/0026-pinctrl-sunxi-fix-R_PIO-register-bank-offset-calcula.patch
+u-boot/0027-sunxi-dts-a733-cubie-a7s-add-USB-host-power-regulato.patch

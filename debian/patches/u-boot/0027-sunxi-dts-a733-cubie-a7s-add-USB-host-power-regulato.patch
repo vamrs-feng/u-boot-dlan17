@@ -1,0 +1,40 @@
+From 7d305338797a548ceadedc48cfc050199f623863 Mon Sep 17 00:00:00 2001
+From: Feng Zhang <feng@radxa.com>
+Date: Thu, 21 May 2026 13:58:01 +0800
+Subject: [PATCH 5/6] sunxi: dts: a733: cubie-a7s: add USB host power regulator
+
+Add a fixed regulator "usb-host-en" controlled by PM5 (R_PIO port M pin 5)
+to enable USB host port power. The regulator is set to always-on and
+boot-on so USB host ports are powered up early in the boot process.
+
+Signed-off-by: Feng Zhang <feng@radxa.com>
+---
+ arch/arm/dts/sun60i-a733-cubie-a7s.dts | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/src/arch/arm/dts/sun60i-a733-cubie-a7s.dts b/src/arch/arm/dts/sun60i-a733-cubie-a7s.dts
+index f5e162a6170..223843654ba 100644
+--- a/src/arch/arm/dts/sun60i-a733-cubie-a7s.dts
++++ b/src/arch/arm/dts/sun60i-a733-cubie-a7s.dts
+@@ -37,6 +37,18 @@
+ 		gpio = <&r_pio 0 2 GPIO_ACTIVE_HIGH>;	/* PL2 */
+ 		enable-active-high;
+ 	};
++
++	reg_usb_host_en: usb-host-en {
++		compatible = "regulator-fixed";
++		regulator-name = "usb-host-en";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&reg_vcc5v>;
++		gpio = <&r_pio 1 5 GPIO_ACTIVE_HIGH>;	/* PM5 */
++		enable-active-high;
++		regulator-always-on;
++		regulator-boot-on;
++	};
+ };
+ 
+ &uart0 {
+-- 
+2.43.0
+

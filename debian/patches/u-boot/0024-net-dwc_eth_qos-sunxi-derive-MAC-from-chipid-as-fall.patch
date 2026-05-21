@@ -1,0 +1,86 @@
+From 0e571b1fed7b4819d2baf1897f4765a049b88ab5 Mon Sep 17 00:00:00 2001
+From: Feng Zhang <feng@radxa.com>
+Date: Mon, 18 May 2026 10:24:52 +0800
+Subject: [PATCH 2/6] net: dwc_eth_qos: sunxi: derive MAC from chipid as
+ fallback
+
+Try EEPROM first for MAC address, fallback to deriving it from
+chipid (SID efuse) if EEPROM is unavailable or returns invalid MAC.
+
+Signed-off-by: Feng Zhang <feng@radxa.com>
+---
+ drivers/net/dwc_eth_qos_sunxi.c | 38 +++++++++++++++++++++++++++++----
+ 1 file changed, 34 insertions(+), 4 deletions(-)
+
+diff --git a/src/drivers/net/dwc_eth_qos_sunxi.c b/src/drivers/net/dwc_eth_qos_sunxi.c
+index 994fabdc2cb..6036e8e879a 100644
+--- a/src/drivers/net/dwc_eth_qos_sunxi.c
++++ b/src/drivers/net/dwc_eth_qos_sunxi.c
+@@ -15,6 +15,7 @@
+ #include <regmap.h>
+ #include <syscon.h>
+ #include <radxa-i2c-eeprom.h>
++#include <asm/arch/cpu.h>
+ 
+ #include <asm/io.h>
+ 
+@@ -317,15 +318,44 @@ static int eqos_remove_resources_sunxi(struct udevice *dev)
+ 	return 0;
+ }
+ 
+-static int eqos_get_enetaddr_radxa(struct udevice *dev)
++static int eqos_get_enetaddr_sunxi(struct udevice *dev)
+ {
+ 	struct eth_pdata *pdata = dev_get_plat(dev);
+ 
+-	if (radxa_mac_read_from_eeprom(pdata->enetaddr)) {
+-		printf("%s: Error read mac addr from eeprom\n", dev->name);
++	/* 1. Try EEPROM first (manufacturer-programmed MAC) */
++	if (!radxa_mac_read_from_eeprom(pdata->enetaddr) &&
++	    is_valid_ethaddr(pdata->enetaddr))
++		return 0;
++
++	/* 2. Fallback: derive MAC from chipid (always available) */
++	unsigned int chipid[4];
++	int ret;
++	u32 mac_seed;
++
++	ret = sunxi_get_sid(chipid);
++	if (ret) {
++		printf("%s: Failed to read chipid: %d\n", dev->name, ret);
+ 		return -1;
+ 	}
+ 
++	/*
++	 * Use chipid[1] as base, add dev_seq() offset so eth0/eth1 get
++	 * different MACs from the same chipid. XOR avoids overflow issues.
++	 */
++	mac_seed = chipid[1] ^ dev_seq(dev);
++
++	pdata->enetaddr[0] = (chipid[2] >> 8) & 0xff;
++	pdata->enetaddr[1] = chipid[2] & 0xff;
++	pdata->enetaddr[2] = (mac_seed >> 24) & 0xff;
++	pdata->enetaddr[3] = (mac_seed >> 16) & 0xff;
++	pdata->enetaddr[4] = (mac_seed >> 8) & 0xff;
++	pdata->enetaddr[5] = mac_seed & 0xff;
++
++	/* Set locally administered bit (bit 1), ensure unicast (bit 0 = 0) */
++	pdata->enetaddr[0] &= ~0x01;	/* unicast */
++	pdata->enetaddr[0] |= 0x02;	/* locally administered */
++
++	debug("%s: MAC derived from chipid: %pM\n", dev->name, pdata->enetaddr);
+ 	return 0;
+ }
+ 
+@@ -343,7 +373,7 @@ static struct eqos_ops eqos_sunxi_ops = {
+ 	.eqos_calibrate_pads = eqos_null_ops,
+ 	.eqos_disable_calibration = eqos_null_ops,
+ 	.eqos_set_tx_clk_speed = eqos_null_ops,
+-	.eqos_get_enetaddr = eqos_get_enetaddr_radxa,
++	.eqos_get_enetaddr = eqos_get_enetaddr_sunxi,
+ 	.eqos_get_tick_clk_rate = eqos_get_tick_clk_rate_sunxi
+ };
+ 
+-- 
+2.43.0
+

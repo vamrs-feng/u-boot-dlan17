@@ -1,0 +1,85 @@
+From d6bebd2f57b159513421ac24f600c06476ffa013 Mon Sep 17 00:00:00 2001
+From: Feng Zhang <feng@radxa.com>
+Date: Wed, 20 May 2026 17:04:38 +0800
+Subject: [PATCH 3/6] drivers/usb: host: fix EHCI not working in Linux after
+ U-Boot USB init
+
+U-Boot initializing USB controllers (EHCI/OHCI/DWC3) left the EHCI
+controller in a non-halted state, causing Linux's ehci-sunxi driver
+to fail usb_add_hcd() during probe.
+
+Changes:
+- ehci-hcd.c: force HCRESET in ehci_shutdown() when graceful stop fails
+- ehci-generic.c, ohci-generic.c, xhci-dwc3.c: add DM_FLAG_OS_PREPARE
+  so dm_remove_devices_active() auto-cleans USB before booting kernel
+
+Signed-off-by: Feng Zhang <feng@radxa.com>
+---
+ drivers/usb/host/ehci-generic.c |  2 +-
+ drivers/usb/host/ehci-hcd.c     | 14 ++++++++++++--
+ drivers/usb/host/ohci-generic.c |  2 +-
+ drivers/usb/host/xhci-dwc3.c    |  2 +-
+ 4 files changed, 15 insertions(+), 5 deletions(-)
+
+diff --git a/src/drivers/usb/host/ehci-generic.c b/src/drivers/usb/host/ehci-generic.c
+index 1ae3619ce25..8075fb069f1 100644
+--- a/src/drivers/usb/host/ehci-generic.c
++++ b/src/drivers/usb/host/ehci-generic.c
+@@ -167,5 +167,5 @@ U_BOOT_DRIVER(ehci_generic) = {
+ 	.remove = ehci_usb_remove,
+ 	.ops	= &ehci_usb_ops,
+ 	.priv_auto	= sizeof(struct generic_ehci),
+-	.flags	= DM_FLAG_ALLOC_PRIV_DMA,
++	.flags	= DM_FLAG_ALLOC_PRIV_DMA | DM_FLAG_OS_PREPARE,
+ };
+diff --git a/src/drivers/usb/host/ehci-hcd.c b/src/drivers/usb/host/ehci-hcd.c
+index 7d5519c65a9..86a7c0b54c1 100644
+--- a/src/drivers/usb/host/ehci-hcd.c
++++ b/src/drivers/usb/host/ehci-hcd.c
+@@ -231,8 +231,18 @@ static int ehci_shutdown(struct ehci_ctrl *ctrl)
+ 			HCHALT_TIMEOUT);
+ 	}
+ 
+-	if (ret)
+-		puts("EHCI failed to shut down host controller.\n");
++	if (ret) {
++		/*
++		 * Graceful shutdown failed, force a hard HCRESET.
++		 * CMD_RESET clears automatically after ~12ms per EHCI spec.
++		 * Use mdelay instead of handshake because some controllers
++		 * return 0xFFFFFFFF on register reads while in reset.
++		 */
++		cmd = ehci_readl(&ctrl->hcor->or_usbcmd);
++		cmd |= CMD_RESET;
++		ehci_writel(&ctrl->hcor->or_usbcmd, cmd);
++		mdelay(50);
++	}
+ 
+ 	return ret;
+ }
+diff --git a/src/drivers/usb/host/ohci-generic.c b/src/drivers/usb/host/ohci-generic.c
+index cc44226f5e0..66f1fd6fd66 100644
+--- a/src/drivers/usb/host/ohci-generic.c
++++ b/src/drivers/usb/host/ohci-generic.c
+@@ -110,5 +110,5 @@ U_BOOT_DRIVER(ohci_generic) = {
+ 	.remove = ohci_usb_remove,
+ 	.ops	= &ohci_usb_ops,
+ 	.priv_auto	= sizeof(struct generic_ohci),
+-	.flags	= DM_FLAG_ALLOC_PRIV_DMA,
++	.flags	= DM_FLAG_ALLOC_PRIV_DMA | DM_FLAG_OS_PREPARE,
+ };
+diff --git a/src/drivers/usb/host/xhci-dwc3.c b/src/drivers/usb/host/xhci-dwc3.c
+index 8ad07a4b98c..7ccc5176b22 100644
+--- a/src/drivers/usb/host/xhci-dwc3.c
++++ b/src/drivers/usb/host/xhci-dwc3.c
+@@ -251,6 +251,6 @@ U_BOOT_DRIVER(xhci_dwc3) = {
+ 	.ops = &xhci_usb_ops,
+ 	.priv_auto	= sizeof(struct xhci_ctrl),
+ 	.plat_auto	= sizeof(struct xhci_dwc3_plat),
+-	.flags = DM_FLAG_ALLOC_PRIV_DMA,
++	.flags = DM_FLAG_ALLOC_PRIV_DMA | DM_FLAG_OS_PREPARE,
+ };
+ #endif
+-- 
+2.43.0
+
