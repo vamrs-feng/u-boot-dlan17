@@ -8,19 +8,6 @@ to 0x110000 for SPL DRAM stack phase.
 
 Signed-off-by: Feng Zhang <feng@radxa.com>
 
-Index: u-boot-dlan17/src/common/spl/Kconfig
-===================================================================
---- u-boot-dlan17.orig/src/common/spl/Kconfig
-+++ u-boot-dlan17/src/common/spl/Kconfig
-@@ -281,7 +281,7 @@ config SPL_TEXT_BASE
- 	default 0x40301350 if OMAP54XX
- 	default 0x10060 if MACH_SUN50I || MACH_SUN50I_H5 || MACH_SUN9I
- 	default 0x44060 if MACH_SUN55I_A523
--	default 0x480006a0 if MACH_SUN60I_A733
-+	default 0x478006a0 if MACH_SUN60I_A733
- 	default 0x20060 if SUN50I_GEN_H6 || SUNXI_GEN_NCAT2
- 	default 0x00060 if ARCH_SUNXI
- 	default 0xfffc0000 if ARCH_ZYNQMP
 Index: u-boot-dlan17/src/configs/radxa-cubie-a7s_defconfig
 ===================================================================
 --- u-boot-dlan17.orig/src/configs/radxa-cubie-a7s_defconfig
