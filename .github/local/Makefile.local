@@ -21,13 +21,27 @@ clean: clean_atf
 clean_atf:
 	$(MAKE) -j$(shell nproc) -C atf clean
 
+#
+# OpenSource BL31
+#
+
 atf/build/%/debug/bl31.bin:
 	$(MAKE) -j$(shell nproc) -C atf CROSS_COMPILE=$(CROSS_COMPILE) PLAT=$* DEBUG=1
 
-src/boot_package-%.fex: awbin/%/boot_package.cfg
-	cat awbin/$*/header-info.bin src/u-boot-sunxi-with-spl.bin > src/u-boot-sunxi-with-spl-with-head.bin
-	cd src/ && ../tools/pack/pctools/linux/openssl/dragonsecboot -pack ../awbin/$*/boot_package.cfg
-	mv src/boot_package.fex $@
+#
+# SCP
+#
+
+SCP_PLATFORM_a733 = sun60iw2p1
+SCP_PLATFORM_a527 = sun55iw3p1
+
+%/scp.bin:
+	$(MAKE) -j$(shell nproc) -C allwinner-arisc \
+		LICHEE_ARISC_DEFDIR=ar100s \
+		LICHEE_ARISC_DEFCONFIG=$(SCP_PLATFORM_$(notdir $*))_defconfig \
+		LICHEE_DRAMLIB_PATH=$(realpath allwinner-dramlib) \
+		CFG_CHIP_PLATFORM=$(SCP_PLATFORM_$(notdir $*))
+	mv allwinner-arisc/ar100s/scp.bin $@
 
 #
 # Device build targets
@@ -53,28 +67,10 @@ radxa-cubie-a7s_defconfig: clean_config
 
 .PHONY: radxa-cubie-a7s_build
 radxa-cubie-a7s_build: radxa-cubie-a7s_defconfig awbin/a733/scp.bin
-	$(UMAKE) SCP=../awbin/a733/scp.bin BL31=../awbin/a733/bl31.bin
-	rm -f src/boot_package-a733.fex
+	$(UMAKE) SCP=../awbin/a733/scp.bin BL31=../awbin/a733/bl31.bin SUNXI_LIBDRAM=../awbin/a733/ddr.bin
 
 .PHONY: radxa-cubie-a7s
-radxa-cubie-a7s: radxa-cubie-a7s_build src/boot_package-a733.fex
+radxa-cubie-a7s: radxa-cubie-a7s_build
 	mkdir -p out/$@
-	cp awbin/a733/boot0_*.bin out/$@/
-	cp awbin/a733/sys_partition_nor.bin out/$@/
-	cp src/boot_package-a733.fex out/$@/boot_package.fex
+	cp src/u-boot-sunxi-with-spl.bin out/$@/
 	cp setup/u-boot_setup-allwinner.sh out/$@/setup.sh
-
-#
-# SCP
-#
-
-SCP_PLATFORM_a733 = sun60iw2p1
-SCP_PLATFORM_a527 = sun55iw3p1
-
-%/scp.bin:
-	$(MAKE) -j$(shell nproc) -C allwinner-arisc \
-		LICHEE_ARISC_DEFDIR=ar100s \
-		LICHEE_ARISC_DEFCONFIG=$(SCP_PLATFORM_$(notdir $*))_defconfig \
-		LICHEE_DRAMLIB_PATH=$(realpath allwinner-dramlib) \
-		CFG_CHIP_PLATFORM=$(SCP_PLATFORM_$(notdir $*))
-	mv allwinner-arisc/ar100s/scp.bin $@
