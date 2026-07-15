@@ -10,13 +10,27 @@ if [[ ! -v ERROR_REQUIRE_TARGET ]]; then
 	readonly ERROR_REQUIRE_TARGET=-5
 fi
 
+is_ufs_device() {
+	local block device_path host proc_name
+
+	[[ -b "$1" ]] || return 1
+	block="$(basename "$(realpath "$1")")"
+	device_path="$(realpath "/sys/class/block/$block/device")"
+
+	if [[ "$device_path" =~ /(host[0-9]+)(/|$) ]]; then
+		host="${BASH_REMATCH[1]}"
+		proc_name="/sys/class/scsi_host/$host/proc_name"
+		[[ -r "$proc_name" ]] && [[ "$(<"$proc_name")" == "ufshcd" ]]
+	else
+		return 1
+	fi
+}
+
 build_spinor() {
 	rm -f /tmp/spi.img /tmp/gpt.img
 	truncate -s 8M /tmp/spi.img
-	if [[ -f "$SCRIPT_DIR/boot0_sdcard.bin" ]] && [[ -f "$SCRIPT_DIR/boot0_sdcard.bin" ]] && [[ -f "$SCRIPT_DIR/boot_package.fex" ]]; then
-		dd conv=notrunc,fsync if="$SCRIPT_DIR/boot0_spinor.bin" of=/tmp/spi.img bs=512
-		dd conv=notrunc,fsync if="$SCRIPT_DIR/boot_package.fex" of=/tmp/spi.img bs=512 seek=512
-		dd conv=notrunc,fsync if="$SCRIPT_DIR/sys_partition_nor.bin" of=/tmp/spi.img bs=512 seek=3296
+	if [[ -f "$SCRIPT_DIR/u-boot-sunxi-with-spl.bin" ]]; then
+		dd conv=notrunc,fsync if="$SCRIPT_DIR/u-boot-sunxi-with-spl.bin" of=/tmp/spi.img bs=512
 	else
         echo "Missing U-Boot binary!" >&2
         return "$ERROR_REQUIRE_FILE"
@@ -26,15 +40,15 @@ build_spinor() {
 update_bootloader() {
 	local DEVICE=$1
 
-    if [[ -f "$SCRIPT_DIR/boot0_sdcard.bin" ]] && [[ -f "$SCRIPT_DIR/boot0_sdcard.bin" ]] && [[ -f "$SCRIPT_DIR/boot_package.fex" ]]; then
-		dd conv=notrunc,fsync if="$SCRIPT_DIR/boot0_sdcard.bin" of="$DEVICE" bs=512 seek=256
-		dd conv=notrunc,fsync if="$SCRIPT_DIR/boot0_ufs.bin" of="$DEVICE" bs=512 seek=2064
-		dd conv=notrunc,fsync if="$SCRIPT_DIR/boot_package.fex" of="$DEVICE" bs=512 seek=24576
-	elif [[ -f "$SCRIPT_DIR/u-boot-sunxi-with-spl.bin" ]]; then
-		dd conv=notrunc,fsync if="$SCRIPT_DIR/u-boot-sunxi-with-spl.bin" of="$DEVICE" bs=512 seek=256
-    else
-        echo "Missing U-Boot binary!" >&2
-        return "$ERROR_REQUIRE_FILE"
+	if [[ -f "$SCRIPT_DIR/u-boot-sunxi-with-spl.bin" ]]; then
+		if is_ufs_device "$DEVICE"; then
+			dd conv=notrunc,fsync if="$SCRIPT_DIR/u-boot-sunxi-with-spl.bin" of="$DEVICE" bs=512 seek=2064
+		else
+			dd conv=notrunc,fsync if="$SCRIPT_DIR/u-boot-sunxi-with-spl.bin" of="$DEVICE" bs=512 seek=256
+		fi
+	else
+		echo "Missing U-Boot binary!" >&2
+		return "$ERROR_REQUIRE_FILE"
 	fi
 	sync "$DEVICE"
 }
